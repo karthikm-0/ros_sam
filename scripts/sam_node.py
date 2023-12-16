@@ -15,7 +15,7 @@ from ros_sam import SAM
 if __name__ == '__main__':
     rospy.init_node('ros_sam')
 
-    model = rospy.get_param('~model', 'vit_h')
+    model = rospy.get_param('~model', 'vit_b')
     cuda  = rospy.get_param('~cuda', 'cuda')
 
     bridge = CvBridge()
@@ -26,6 +26,27 @@ if __name__ == '__main__':
 
     def srv_segmentation(req : SegmentationRequestMsg):
         try:
+            img    = cv2.cvtColor(bridge.imgmsg_to_cv2(req.image), cv2.COLOR_BGR2RGB)
+            points = None
+            boxes  = np.asarray(req.boxes.data).reshape((len(req.boxes.data) // 4, 4))[0] if len(req.boxes.data) > 0 else None
+            labels = None
+
+            print("Segmenting at boxes:")
+            print(img.shape)
+
+            masks, scores, logits = sam.segment(img, points, labels, boxes, req.multimask)
+
+            res = SegmentationResponseMsg()
+            res.masks  = [bridge.cv2_to_imgmsg(m.astype(np.uint8)) for m in masks]
+            res.scores = scores.tolist()
+            if req.logits:
+                res.logits = [bridge.cv2_to_imgmsg(l) for l in logits]
+            return res
+        except Exception as e:
+            print(f'{e}')
+            raise Exception('Failure during service call. Check output on SAM node.')
+
+        '''try:
             img    = cv2.cvtColor(bridge.imgmsg_to_cv2(req.image), cv2.COLOR_BGR2RGB)
             points = np.vstack([(p.x, p.y) for p in req.query_points])
             boxes  = np.asarray(req.boxes.data).reshape((len(req.boxes.data) // 4, 4))[0] if len(req.boxes.data) > 0 else None
@@ -48,7 +69,7 @@ if __name__ == '__main__':
             return res
         except Exception as e:
             print(f'{e}')
-            raise Exception('Failure during service call. Check output on SAM node.')
+            raise Exception('Failure during service call. Check output on SAM node.')'''
 
     srv = rospy.Service('~segment', SegmentationSrv, srv_segmentation)
 

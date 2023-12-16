@@ -47,9 +47,22 @@ class SAMClient():
         if boxes is not None:
             msg_boxes.data = list(boxes.flatten().astype(int))
 
-        res = self._srv_sam(self._bridge.cv2_to_imgmsg(img_rgb), 
-                            [PointMsg(x=x, y=y, z=0) for (x, y) in points],
-                            labels, 
+        # Supports two modes
+        # 1. boxes is None, points is not None
+        '''res = self._srv_sam(self._bridge.cv2_to_imgmsg(img_rgb), 
+                            [PointMsg(x=x, y=y, z=0) for (x, y) in points] if points is not None else None,
+                            labels if labels is not None else None,
                             msg_boxes, 
                             boxes is None, False)
+        return [self._bridge.imgmsg_to_cv2(m) for m in res.masks], res.scores'''
+    
+        # 2. boxes is not None, points is None
+        res = self._srv_sam(self._bridge.cv2_to_imgmsg(img_rgb), 
+                            [],
+                            [],
+                            msg_boxes,
+                            False,
+                            False)    
         return [self._bridge.imgmsg_to_cv2(m) for m in res.masks], res.scores
+
+        # 3. boxes is not None, points is not None

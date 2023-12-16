@@ -34,8 +34,9 @@ class SAM():
         gc.collect()
         torch.cuda.empty_cache()
 
-    def segment(self, img, points, point_labels, boxes=None, multimask=True):
+    def segment(self, img, points=None, point_labels=None, boxes=None, multimask=True):
         self._predictor.set_image(img)        
+        
         return self._predictor.predict(
             point_coords=points,
             point_labels=point_labels,
